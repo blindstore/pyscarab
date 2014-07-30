@@ -80,6 +80,10 @@ class PublicKey(object):
             scarab.fhe_encrypt(encrypted_array[i], self.raw, int(bit))
         return encrypted_array
 
+    def __del__(self):
+        """Clear key"""
+        scarab.fhe_pk_clear(self.raw)
+
 
 class PrivateKey(object):
 
@@ -99,6 +103,10 @@ class PrivateKey(object):
         for i, enc_bit in enumerate(encrypted_array):
             bits[i] = int(scarab.fhe_decrypt(enc_bit, self.raw))
         return bits
+
+    def __del__(self):
+        """Clear key"""
+        scarab.fhe_sk_clear(self.raw)
 
 
 def generate_pair():
