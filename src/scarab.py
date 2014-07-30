@@ -1,4 +1,4 @@
-"""libscarab Python wrapper"""
+"""`libscarab` Python wrapper"""
 
 from ctypes import c_int
 
@@ -18,7 +18,7 @@ class EncryptedArray(object):
     def __init__(self, n):
         """Construct empty array
 
-        :param n: Encrypted array size
+        :param n: Array size
         """
         # FIXME: Leaks memory (proper init and clear needed)
         self._array = [c_mpz_t() for bit in range(n)]
@@ -73,7 +73,7 @@ class PublicKey(object):
         """Encrypt message bit-by-bit
 
         :param bits: Plaintext bit array
-        :rtype: Encrypted bit array
+        :rtype: Encrypted array
         """
         encrypted_array = EncryptedArray(len(bits))
         for i, bit in enumerate(bits):
@@ -96,7 +96,7 @@ class PrivateKey(object):
     def decrypt(self, encrypted_array):
         """Decrypt the encrypted array
 
-        :param encrypted_array: Encrypted bit array
+        :param encrypted_array: Encrypted array
         :rtype: Plaintext bit array
         """
         bits = [c_int() for enc_bit in encrypted_array]
