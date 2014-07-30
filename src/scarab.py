@@ -1,13 +1,14 @@
 """libscarab Python wrapper"""
 
-import os
-import ctypes
+from ctypes import c_int
+
+from loader import ScarabLoader
+from typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
+# from utils import fhe_pk_t_init, fhe_sk_t_init, mpz_init
 
 
-path = os.path.abspath(__file__)
-project_path = os.path.dirname(os.path.dirname(path))
-scarab = ctypes.cdll.LoadLibrary(os.path.join(project_path,
-    'lib/scarab/build/libscarab.so'))
+load_scarab = ScarabLoader()
+scarab = load_scarab()
 
 
 class PublicKey(object):
@@ -24,7 +25,7 @@ class PublicKey(object):
         :param bits: Plaintext bit array
         :rtype: Encrypted bit array
         """
-        encrypted_array = [scarab.mpz_t() for bit in bits]
+        encrypted_array = [c_mpz_t() for bit in bits]
         for i, bit in enumerate(m):
             scarab.fhe_encrypt(encrypted_array[i], self.raw, int(bit))
         return encrypted_array
@@ -44,7 +45,7 @@ class PrivateKey(object):
         :param encrypted_array: Encrypted bit array
         :rtype: Plaintext bit array
         """
-        bits = [ctypes.c_int() for enc_bit in encrypted_array]
+        bits = [c_int() for enc_bit in encrypted_array]
         for i, enc_bit in enumerate(encrypted_array):
             bits[i] = int(scarab.fhe_decrypt(enc_bit, self.raw))
         return bits
@@ -59,7 +60,7 @@ class EncryptedArray(object):
 
         :param n: Encrypted array size
         """
-        self.array = [scarab.mpz_t() for bit in range(n)]
+        self.array = [c_mpz_t() for bit in range(n)]
         self.n = n  # Size
         self.k = 0  # Iterator
 
@@ -99,6 +100,8 @@ class EncryptedArray(object):
 
 def generate_pair():
     """Generate public and private keypair"""
-    pk, sk = scarab.fhe_pk_t(), scarab.fhe_sk_t()
+    pk, sk = c_fhe_pk_t(), c_fhe_sk_t()
+    scarab.fhe_pk_init(pk)
+    scarab.fhe_sk_init(sk)
     scarab.fhe_keygen(pk, sk)
     return PublicKey(pk), PrivateKey(sk)
