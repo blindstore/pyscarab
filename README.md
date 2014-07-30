@@ -1,1 +1,4 @@
-Move along, nothing to see here
+Python wrapper for [`libscarab`](https://hcrypt.com/)
+-----------------------------------------------------
+
+
