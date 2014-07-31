@@ -2,8 +2,8 @@
 
 from scarab import generate_pair, PublicKey, PrivateKey, EncryptedArray
 
-from loader import ScarabLoader
-from typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
+from scarab.loader import ScarabLoader
+from scarab.typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
 
 from nose.tools import *
 

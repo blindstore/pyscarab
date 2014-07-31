@@ -3,7 +3,7 @@
 from ctypes import POINTER, Structure, \
     c_ulonglong, c_int
 
-import predefs
+from .predefs import *
 
 
 class _c__mpz_struct(Structure):
@@ -26,8 +26,8 @@ class _c__fhe_pk(Structure):
     _fields_ = [
         ('p',     c_mpz_t),
         ('alpha', c_mpz_t),
-        ('c',     c_mpz_t * predefs.S1),
-        ('B',     c_mpz_t * predefs.S1)]
+        ('c',     c_mpz_t * S1),
+        ('B',     c_mpz_t * S1)]
 
 
 # fhe_pk_t definition

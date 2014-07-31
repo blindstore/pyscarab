@@ -2,8 +2,8 @@
 
 from ctypes import c_int
 
-from loader import ScarabLoader
-from typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
+from .loader import ScarabLoader
+from .typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
 # from utils import fhe_pk_t_init, fhe_sk_t_init, mpz_init
 
 
