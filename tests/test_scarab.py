@@ -30,7 +30,8 @@ class TestEncryptedArray(object):
     """EncryptedArray unit tests"""
 
     def setup(self):
-        self.array = EncryptedArray(16)
+        self.pk, self.sk = generate_pair()
+        self.array = EncryptedArray(16, self.pk)
 
     def test_iteration(self):
         counter = 0
@@ -63,7 +64,39 @@ class TestEncryption(object):
         assert_not_equals(self.sk.raw, 0)
 
     def test_encryption(self):
+        m = [0, 0, 0, 0, 0, 0, 0, 0]
+        c = self.pk.encrypt(m)
+        p = self.sk.decrypt(c)
+        assert_equals(m, p)
+
         m = [1, 0, 1, 0, 1, 0, 1, 0]
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
         assert_equals(m, p)
+
+        m = [1, 1, 1, 1, 1, 1, 1, 1]
+        c = self.pk.encrypt(m)
+        p = self.sk.decrypt(c)
+        assert_equals(m, p)
+
+
+class TestHomomorphicOperations(object):
+
+    def setup(self):
+        self.pk, self.sk = generate_pair()
+
+    def test_addition(self):
+        def check_result(a, b):
+            ea = self.pk.encrypt(a)
+            eb = self.pk.encrypt(b)
+            r = self.sk.decrypt(ea + eb)
+            c = list(map(lambda t: t[0] & t[1], zip(a, b)))
+            print(a, b, c, r)
+            assert_equals(r, c)
+        pairs = [
+            ([0, 0, 0, 0], [0, 0, 0, 0]),
+            ([0, 0, 1, 1], [0, 0, 1, 1]),
+            ([1, 1, 1, 1], [1, 1, 1, 1]),
+        ]
+        for a, b in pairs:
+            check_result(a, b)

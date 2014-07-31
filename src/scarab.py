@@ -15,15 +15,23 @@ class EncryptedArray(object):
 
     """Encrypted array (ciphertext)"""
 
-    def __init__(self, n):
+    def __init__(self, n, pk, fill=True):
         """Construct empty array
 
-        :param n: Array size
+        :param n:    array size
+        :param pk:   :class:`~PublicKey` object
+        :param fill: if True, fills an array with mpz_t instances
         """
+        self.pk = pk
+
         # FIXME: Leaks memory (proper init and clear needed)
-        self._array = [c_mpz_t() for bit in range(n)]
-        self._n = n  # Size
-        self._k = 0  # Iterator
+        if fill:
+            self._array = [c_mpz_t() for bit in range(n)]
+        else:
+            self._array = []
+
+        self._n  = n  # Size
+        self._k  = 0  # Iterator
 
     def __getitem__(self, i):
         """Get i-th element"""
@@ -50,11 +58,17 @@ class EncryptedArray(object):
         """Array size"""
         return self._n
 
-    def __add__(self, encrypted_array):
+    def __add__(self, other_array):
         """Homomorphic addition"""
-        assert len(encrypted_array) == self._n
-        for c in self._array:
-            scarab.fhe_add()
+        raw_results = []
+        for a, b in zip(self._array, other_array):
+            # FIXME: initialize properly, damn it
+            c = c_mpz_t()
+            scarab.fhe_add(c, a, b, self.pk.raw)
+            raw_results.append(c)
+        result = EncryptedArray(len(raw_results), self.pk, fill=False)
+        result._array = raw_results
+        return result
 
     def __mul__(self):
         """Homomorphic multiplication"""
@@ -72,10 +86,10 @@ class PublicKey(object):
     def encrypt(self, bits):
         """Encrypt message bit-by-bit
 
-        :param bits: Plaintext bit array
-        :rtype: Encrypted array
+        :param bits: plaintext bit array
+        :rtype: encrypted array
         """
-        encrypted_array = EncryptedArray(len(bits))
+        encrypted_array = EncryptedArray(len(bits), self)
         for i, bit in enumerate(bits):
             scarab.fhe_encrypt(encrypted_array[i], self.raw, int(bit))
         return encrypted_array
@@ -96,8 +110,8 @@ class PrivateKey(object):
     def decrypt(self, encrypted_array):
         """Decrypt the encrypted array
 
-        :param encrypted_array: Encrypted array
-        :rtype: Plaintext bit array
+        :param encrypted_array: encrypted array
+        :rtype: plaintext bit array
         """
         bits = [c_int() for enc_bit in encrypted_array]
         for i, enc_bit in enumerate(encrypted_array):
