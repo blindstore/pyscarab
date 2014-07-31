@@ -54,12 +54,20 @@ class EncryptedArray(object):
         """Iterator for Python 2"""
         return self.__next__()
 
+    # def recrypt(self):
+    #     """Recrypt ciphertext"""
+    #     recrypted_array = []
+    #     for c in self._array:
+    #         scarab.fhe_recrypt(c, self.pk.raw)
+    #         recrypted_array.append(c)
+    #     self._array = recrypted_array
+
     def __len__(self):
         """Array size"""
         return self._n
 
-    def __add__(self, other_array):
-        """Homomorphic addition"""
+    def __xor__(self, other_array):
+        """Homomorphic bitwise XOR"""
         raw_results = []
         for a, b in zip(self._array, other_array):
             # FIXME: initialize properly, damn it
@@ -70,9 +78,17 @@ class EncryptedArray(object):
         result._array = raw_results
         return result
 
-    def __mul__(self):
-        """Homomorphic multiplication"""
-        pass
+    def __and__(self, other_array):
+        """Homomorphic bitwise AND"""
+        raw_results = []
+        for a, b in zip(self._array, other_array):
+            # FIXME: initialize properly, damn it
+            c = c_mpz_t()
+            scarab.fhe_mul(c, a, b, self.pk.raw)
+            raw_results.append(c)
+        result = EncryptedArray(len(raw_results), self.pk, fill=False)
+        result._array = raw_results
+        return result
 
 
 class PublicKey(object):

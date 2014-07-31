@@ -51,6 +51,12 @@ class TestEncryptedArray(object):
     def test_len(self):
         assert_equals(len(self.array), 16)
 
+    # def test_recrypt(self):
+    #     old = list(self.array._array)
+    #     self.array.recrypt()
+    #     new = list(self.array._array)
+    #     assert_not_equals(old, new)
+
 
 class TestEncryption(object):
 
@@ -85,11 +91,27 @@ class TestHomomorphicOperations(object):
     def setup(self):
         self.pk, self.sk = generate_pair()
 
-    def test_addition(self):
+    def test_xor(self):
         def check_result(a, b):
             ea = self.pk.encrypt(a)
             eb = self.pk.encrypt(b)
-            r = self.sk.decrypt(ea + eb)
+            r = self.sk.decrypt(ea ^ eb)
+            c = list(map(lambda t: t[0] ^ t[1], zip(a, b)))
+            print(a, b, c, r)
+            assert_equals(r, c)
+        pairs = [
+            ([0, 0, 0, 0], [0, 0, 0, 0]),
+            ([0, 0, 1, 1], [0, 0, 1, 1]),
+            ([1, 1, 1, 1], [1, 1, 1, 1]),
+        ]
+        for a, b in pairs:
+            check_result(a, b)
+
+    def test_and(self):
+        def check_result(a, b):
+            ea = self.pk.encrypt(a)
+            eb = self.pk.encrypt(b)
+            r = self.sk.decrypt(ea & eb)
             c = list(map(lambda t: t[0] & t[1], zip(a, b)))
             print(a, b, c, r)
             assert_equals(r, c)
