@@ -87,6 +87,8 @@ class TestEncryption(object):
 
 class TestHomomorphicOperations(object):
 
+    """Test homomorphic AND, XOR, +, *"""
+
     def setup(self):
         self.pk, self.sk = generate_pair()
 
