@@ -13,7 +13,7 @@ class Library(object):
     libs = {}
 
     lib_paths = {
-        'scarab': 'lib/scarab/build/libscarab.so',
+        'scarab': 'libscarab.so',
         'gmp': 'libgmp.so'
     }
 
