@@ -3,11 +3,12 @@
 from ctypes import c_int
 
 from .loader import Library
-from .typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
+from .types import make_c_mpz_t, clear_c_mpz_t, \
+                   make_c_fhe_pk_t, clear_c_fhe_pk_t, \
+                   make_c_fhe_sk_t, clear_c_fhe_sk_t
 
 
 scarab = Library.load('scarab')
-gmp = Library.load('gmp')
 
 
 class EncryptedArray(object):
@@ -19,13 +20,12 @@ class EncryptedArray(object):
 
         :param n:    array size
         :param pk:   :class:`~PublicKey` object
-        :param fill: if True, fills an array with mpz_t instances
+        :param fill: if True, fills an array with c_mpz_t instances
         """
         self.pk = pk
 
-        # FIXME: Leaks memory (proper init and clear needed)
         if fill:
-            self._array = [c_mpz_t() for bit in range(n)]
+            self._array = [make_c_mpz_t() for bit in range(n)]
         else:
             self._array = []
 
@@ -35,6 +35,13 @@ class EncryptedArray(object):
     def __getitem__(self, i):
         """Get i-th element"""
         return self._array[i]
+
+    def __setitem__(self, i, _):
+        """Ignore setter
+
+        FIXME: Does this make sense?
+        """
+        pass
 
     def __next__(self):
         """Iterator"""
@@ -65,8 +72,7 @@ class EncryptedArray(object):
         """Homomorphic bitwise XOR"""
         raw_results = []
         for a, b in zip(self._array, other_array):
-            # FIXME: initialize properly, damn it
-            c = c_mpz_t()
+            c = make_c_mpz_t()
             scarab.fhe_add(c, a, b, self.pk.raw)
             raw_results.append(c)
         result = EncryptedArray(len(raw_results), self.pk, fill=False)
@@ -77,13 +83,21 @@ class EncryptedArray(object):
         """Homomorphic bitwise AND"""
         raw_results = []
         for a, b in zip(self._array, other_array):
-            # FIXME: initialize properly, damn it
-            c = c_mpz_t()
+            c = make_c_mpz_t()
             scarab.fhe_mul(c, a, b, self.pk.raw)
             raw_results.append(c)
         result = EncryptedArray(len(raw_results), self.pk, fill=False)
         result._array = raw_results
         return result
+
+    def __add__(self, other_array):
+        """Homomorphic addition with carry"""
+        pass
+
+    def __del__(self):
+        """Clear array of mpz_t"""
+        for c in self._array:
+            clear_c_mpz_t(c)
 
 
 class PublicKey(object):
@@ -91,7 +105,10 @@ class PublicKey(object):
     """Public Key"""
 
     def __init__(self, pk):
-        """Create PublicKey object from raw public key"""
+        """Create PublicKey object from raw public key
+
+        Should be constructed with :func:`~generate_pair`
+        """
         self.raw = pk
 
     def encrypt(self, bits):
@@ -107,7 +124,7 @@ class PublicKey(object):
 
     def __del__(self):
         """Clear key"""
-        scarab.fhe_pk_clear(self.raw)
+        clear_c_fhe_pk_t(self.raw)
 
 
 class PrivateKey(object):
@@ -115,7 +132,10 @@ class PrivateKey(object):
     """Private Key"""
 
     def __init__(self, sk):
-        """Create PrivateKey object from raw private key"""
+        """Create PrivateKey object from raw private key
+
+        Should be constructed with :func:`~generate_pair`
+        """
         self.raw = sk
 
     def decrypt(self, encrypted_array):
@@ -131,13 +151,11 @@ class PrivateKey(object):
 
     def __del__(self):
         """Clear key"""
-        scarab.fhe_sk_clear(self.raw)
+        clear_c_fhe_sk_t(self.raw)
 
 
 def generate_pair():
     """Generate public and private keypair"""
-    pk, sk = c_fhe_pk_t(), c_fhe_sk_t()
-    scarab.fhe_pk_init(pk)
-    scarab.fhe_sk_init(sk)
+    pk, sk = make_c_fhe_pk_t(), make_c_fhe_sk_t()
     scarab.fhe_keygen(pk, sk)
     return PublicKey(pk), PrivateKey(sk)

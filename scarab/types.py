@@ -1,9 +1,14 @@
-"""Type definitions for `libscarab` types.h and GMP"""
+"""Some low-level type definitions for `libscarab` and `GMP`"""
 
 from ctypes import POINTER, Structure, \
     c_ulonglong, c_int
 
+from .loader import Library
 from .predefs import *
+
+
+gmp = Library.load('gmp')
+scarab = Library.load('scarab')
 
 
 class _c__mpz_struct(Structure):
@@ -17,6 +22,17 @@ class _c__mpz_struct(Structure):
 
 # mpz_t definition
 c_mpz_t = _c__mpz_struct * 1
+
+
+def make_c_mpz_t():
+    """Construct an mpz_t instance"""
+    c = c_mpz_t()
+    gmp.__gmpz_init(c)
+    return c
+
+
+# mpz_t destructor
+clear_c_mpz_t = gmp.__gmpz_clear
 
 
 class _c__fhe_pk(Structure):
@@ -34,6 +50,17 @@ class _c__fhe_pk(Structure):
 c_fhe_pk_t = _c__fhe_pk * 1
 
 
+def make_c_fhe_pk_t():
+    """Construct an fhe_pk_t instance"""
+    pk = c_fhe_pk_t()
+    scarab.fhe_pk_init(pk)
+    return pk
+
+
+# fhe_pk_t destructor
+clear_c_fhe_pk_t = scarab.fhe_pk_clear
+
+
 class _c__fhe_sk(Structure):
 
     """_fhe_sk (private key) definition"""
@@ -45,3 +72,14 @@ class _c__fhe_sk(Structure):
 
 # fhe_sk_t definition
 c_fhe_sk_t = _c__fhe_sk * 1
+
+
+def make_c_fhe_sk_t():
+    """Construct an fhe_sk_t instance"""
+    sk = c_fhe_sk_t()
+    scarab.fhe_sk_init(sk)
+    return sk
+
+
+# fhe_sk_t destructor
+clear_c_fhe_sk_t = scarab.fhe_sk_clear
