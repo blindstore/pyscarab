@@ -2,13 +2,12 @@
 
 from ctypes import c_int
 
-from .loader import ScarabLoader
+from .loader import Library
 from .typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
-# from utils import fhe_pk_t_init, fhe_sk_t_init, mpz_init
 
 
-load_scarab = ScarabLoader()
-scarab = load_scarab()
+scarab = Library.load('scarab')
+gmp = Library.load('gmp')
 
 
 class EncryptedArray(object):

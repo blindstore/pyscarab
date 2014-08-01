@@ -2,14 +2,13 @@
 
 from scarab import generate_pair, PublicKey, PrivateKey, EncryptedArray
 
-from scarab.loader import ScarabLoader
+from scarab.loader import Library
 from scarab.typedefs import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
 
 from nose.tools import *
 
 
-load_scarab = ScarabLoader()
-scarab = load_scarab()
+scarab = Library.load('scarab')
 
 
 class TestTypedefs(object):
