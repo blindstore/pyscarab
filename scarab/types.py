@@ -1,7 +1,7 @@
 """Some low-level type definitions for `libscarab` and `GMP`"""
 
 from ctypes import POINTER, Structure, \
-    c_ulonglong, c_int
+    c_ulong, c_ulonglong, c_int
 
 from .loader import Library
 from .predefs import *
@@ -33,6 +33,18 @@ def make_c_mpz_t():
 
 # mpz_t destructor
 clear_c_mpz_t = lib_gmp.__gmpz_clear
+
+# mpz_t assignment
+assign_c_mpz_t = lib_gmp.__gmpz_set
+
+# mpz_t comparision
+def compare_c_mpz_t(a, b):
+    if isinstance(b, c_ulong):
+        return lib_gmp.__gmpz_cmp_ui(a, b)
+    elif isinstance(b, c_mpz_t):
+        return lib_gmp.__gmpz_cmp(a, b)
+    else:
+        raise TypeError('Unknown `b` type')
 
 
 class _c__fhe_pk(Structure):

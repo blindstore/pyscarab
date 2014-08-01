@@ -1,9 +1,12 @@
 """Scarab wrapper unit tests"""
 
+import ctypes
+
 from scarab import generate_pair, PublicKey, PrivateKey, EncryptedArray
 
 from scarab.loader import Library
-from scarab.types import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
+from scarab.types import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t, \
+                         make_c_mpz_t, compare_c_mpz_t
 
 from nose.tools import *
 
@@ -25,6 +28,12 @@ class TestTypes(object):
         lib_scarab.fhe_pk_init(pk)
         lib_scarab.fhe_pk_clear(pk)
 
+    def test_mpz_compare(self):
+        a = make_c_mpz_t()
+        b = make_c_mpz_t()
+        assert_true(compare_c_mpz_t(a, b) == 0)
+        b = ctypes.c_ulong(50)
+        assert_true(compare_c_mpz_t(a, b) != 0)
 
 class TestEncryptedArray(object):
 
@@ -45,6 +54,11 @@ class TestEncryptedArray(object):
         self.array[5]
         assert_raises(Exception, self.array, 16)
 
+    def test_get(self):
+        m = make_c_mpz_t()
+        self.array[5] = m
+        assert_true(compare_c_mpz_t(self.array[5], m) == 0)
+
     def test_len(self):
         assert_equals(len(self.array), 16)
 
@@ -63,29 +77,32 @@ class TestEncryption(object):
         self.pk, self.sk = generate_pair()
 
     def test_generate_pair(self):
-        assert_not_equals(self.pk.raw, 0)
-        assert_not_equals(self.sk.raw, 0)
+        assert_true(compare_c_mpz_t(self.pk, make_c_mpz_t()) != 0)
+        assert_true(compare_c_mpz_t(self.sk, make_c_mpz_t()) != 0)
 
     def test_encryption(self):
         m = [0, 0, 0, 0, 0, 0, 0, 0]
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
+        assert_true(compare_c_mpz_t(c[0], make_c_mpz_t()) != 0)
         assert_equals(m, p)
 
         m = [1, 0, 1, 0, 1, 0, 1, 0]
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
+        assert_true(compare_c_mpz_t(c[0], make_c_mpz_t()) != 0)
         assert_equals(m, p)
 
         m = [1, 1, 1, 1, 1, 1, 1, 1]
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
+        assert_true(compare_c_mpz_t(c[0], make_c_mpz_t()) != 0)
         assert_equals(m, p)
 
 
 class TestHomomorphicOperations(object):
 
-    """Test homomorphic AND, XOR, +, *"""
+    """Test homomorphic AND, XOR, +"""
 
     def setup(self):
         self.pk, self.sk = generate_pair()
@@ -96,7 +113,7 @@ class TestHomomorphicOperations(object):
             eb = self.pk.encrypt(b)
             r = self.sk.decrypt(ea ^ eb)
             c = list(map(lambda t: t[0] ^ t[1], zip(a, b)))
-            print(a, b, c, r)
+            print (a, b, c, r)
             assert_equals(r, c)
         pairs = [
             ([0, 0, 0, 0], [0, 0, 0, 0]),
@@ -112,7 +129,7 @@ class TestHomomorphicOperations(object):
             eb = self.pk.encrypt(b)
             r = self.sk.decrypt(ea & eb)
             c = list(map(lambda t: t[0] & t[1], zip(a, b)))
-            print(a, b, c, r)
+            print (a, b, c, r)
             assert_equals(r, c)
         pairs = [
             ([0, 0, 0, 0], [0, 0, 0, 0]),
@@ -121,3 +138,18 @@ class TestHomomorphicOperations(object):
         ]
         for a, b in pairs:
             check_result(a, b)
+
+    # def test_add(self):
+    #     def check_result(a, b, c):
+    #         ea = self.pk.encrypt(a)
+    #         eb = self.pk.encrypt(b)
+    #         r = self.sk.decrypt(ea + eb)
+    #         print (a, b, c, r)
+    #         assert_equals(r, c)
+    #     values = [
+    #         ([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    #         ([0, 0, 1, 1], [0, 0, 1, 1], [0, 1, 1, 0]),
+    #         ([1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1, 0]),
+    #     ]
+    #     for a, b, c in values:
+    #         check_result(a, b, c)
