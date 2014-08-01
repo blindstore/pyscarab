@@ -36,10 +36,6 @@ class EncryptedArray(object):
         """Get i-th element"""
         return self._array[i]
 
-    def __setitem__(self, i, value):
-        """Set i-th element"""
-        self._array[i] = value
-
     def __next__(self):
         """Iterator"""
         if self._k >= self._n:

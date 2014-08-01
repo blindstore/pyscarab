@@ -43,10 +43,6 @@ class TestEncryptedArray(object):
         self.array[5]
         assert_raises(Exception, self.array, 16)
 
-    def test_set(self):
-        self.array[5] = None
-        assert_equals(self.array[5], None)
-
     def test_len(self):
         assert_equals(len(self.array), 16)
 
