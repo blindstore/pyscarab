@@ -7,8 +7,8 @@ from .loader import Library
 from .predefs import *
 
 
-gmp = Library.load('gmp')
-scarab = Library.load('scarab')
+lib_gmp = Library.load('gmp')
+lib_scarab = Library.load('scarab')
 
 
 class _c__mpz_struct(Structure):
@@ -27,12 +27,12 @@ c_mpz_t = _c__mpz_struct * 1
 def make_c_mpz_t():
     """Construct an mpz_t instance"""
     c = c_mpz_t()
-    gmp.__gmpz_init(c)
+    lib_gmp.__gmpz_init(c)
     return c
 
 
 # mpz_t destructor
-clear_c_mpz_t = gmp.__gmpz_clear
+clear_c_mpz_t = lib_gmp.__gmpz_clear
 
 
 class _c__fhe_pk(Structure):
@@ -53,12 +53,12 @@ c_fhe_pk_t = _c__fhe_pk * 1
 def make_c_fhe_pk_t():
     """Construct an fhe_pk_t instance"""
     pk = c_fhe_pk_t()
-    scarab.fhe_pk_init(pk)
+    lib_scarab.fhe_pk_init(pk)
     return pk
 
 
 # fhe_pk_t destructor
-clear_c_fhe_pk_t = scarab.fhe_pk_clear
+clear_c_fhe_pk_t = lib_scarab.fhe_pk_clear
 
 
 class _c__fhe_sk(Structure):
@@ -77,9 +77,9 @@ c_fhe_sk_t = _c__fhe_sk * 1
 def make_c_fhe_sk_t():
     """Construct an fhe_sk_t instance"""
     sk = c_fhe_sk_t()
-    scarab.fhe_sk_init(sk)
+    lib_scarab.fhe_sk_init(sk)
     return sk
 
 
 # fhe_sk_t destructor
-clear_c_fhe_sk_t = scarab.fhe_sk_clear
+clear_c_fhe_sk_t = lib_scarab.fhe_sk_clear

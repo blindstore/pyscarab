@@ -8,7 +8,7 @@ from .types import make_c_mpz_t, clear_c_mpz_t, \
                    make_c_fhe_sk_t, clear_c_fhe_sk_t
 
 
-scarab = Library.load('scarab')
+lib_scarab = Library.load('scarab')
 
 
 class EncryptedArray(object):
@@ -60,7 +60,7 @@ class EncryptedArray(object):
     #     """Recrypt ciphertext"""
     #     recrypted_array = []
     #     for c in self._array:
-    #         scarab.fhe_recrypt(c, self.pk.raw)
+    #         lib_scarab.fhe_recrypt(c, self.pk.raw)
     #         recrypted_array.append(c)
     #     self._array = recrypted_array
 
@@ -73,7 +73,7 @@ class EncryptedArray(object):
         raw_results = []
         for a, b in zip(self._array, other_array):
             c = make_c_mpz_t()
-            scarab.fhe_add(c, a, b, self.pk.raw)
+            lib_scarab.fhe_add(c, a, b, self.pk.raw)
             raw_results.append(c)
         result = EncryptedArray(len(raw_results), self.pk, fill=False)
         result._array = raw_results
@@ -84,7 +84,7 @@ class EncryptedArray(object):
         raw_results = []
         for a, b in zip(self._array, other_array):
             c = make_c_mpz_t()
-            scarab.fhe_mul(c, a, b, self.pk.raw)
+            lib_scarab.fhe_mul(c, a, b, self.pk.raw)
             raw_results.append(c)
         result = EncryptedArray(len(raw_results), self.pk, fill=False)
         result._array = raw_results
@@ -119,7 +119,7 @@ class PublicKey(object):
         """
         encrypted_array = EncryptedArray(len(bits), self)
         for i, bit in enumerate(bits):
-            scarab.fhe_encrypt(encrypted_array[i], self.raw, int(bit))
+            lib_scarab.fhe_encrypt(encrypted_array[i], self.raw, int(bit))
         return encrypted_array
 
     def __del__(self):
@@ -146,7 +146,7 @@ class PrivateKey(object):
         """
         bits = [c_int() for enc_bit in encrypted_array]
         for i, enc_bit in enumerate(encrypted_array):
-            bits[i] = int(scarab.fhe_decrypt(enc_bit, self.raw))
+            bits[i] = int(lib_scarab.fhe_decrypt(enc_bit, self.raw))
         return bits
 
     def __del__(self):
@@ -157,5 +157,5 @@ class PrivateKey(object):
 def generate_pair():
     """Generate public and private keypair"""
     pk, sk = make_c_fhe_pk_t(), make_c_fhe_sk_t()
-    scarab.fhe_keygen(pk, sk)
+    lib_scarab.fhe_keygen(pk, sk)
     return PublicKey(pk), PrivateKey(sk)

@@ -8,7 +8,7 @@ from scarab.types import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t
 from nose.tools import *
 
 
-scarab = Library.load('scarab')
+lib_scarab = Library.load('scarab')
 
 
 class TestTypes(object):
@@ -17,11 +17,13 @@ class TestTypes(object):
 
     def test_sk_init(self):
         sk = c_fhe_sk_t()
-        scarab.fhe_sk_init(sk)
+        lib_scarab.fhe_sk_init(sk)
+        lib_scarab.fhe_sk_clear(sk)
 
     def test_pk_init(self):
         pk = c_fhe_pk_t()
-        scarab.fhe_pk_init(pk)
+        lib_scarab.fhe_pk_init(pk)
+        lib_scarab.fhe_pk_clear(pk)
 
 
 class TestEncryptedArray(object):
