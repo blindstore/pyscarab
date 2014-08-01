@@ -2,11 +2,10 @@
 
 import ctypes
 
-from scarab import generate_pair, PublicKey, PrivateKey, EncryptedArray
+from scarab import *
 
 from scarab.loader import Library
-from scarab.types import c_mpz_t, c_fhe_sk_t, c_fhe_pk_t, \
-                         make_c_mpz_t, compare_c_mpz_t
+from scarab.types import *
 
 from nose.tools import *
 
@@ -80,7 +79,14 @@ class TestEncryption(object):
         assert_true(compare_c_mpz_t(self.pk, make_c_mpz_t()) != 0)
         assert_true(compare_c_mpz_t(self.sk, make_c_mpz_t()) != 0)
 
-    def test_encryption(self):
+    def test_bit_encryption(self):
+        b = 0
+        c = self.pk.encrypt(b)
+        assert_true(isinstance(c, EncryptedBit))
+        p = self.sk.decrypt(c)
+        assert_equals(p, b)
+
+    def test_array_encryption(self):
         m = [0, 0, 0, 0, 0, 0, 0, 0]
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
@@ -107,7 +113,7 @@ class TestHomomorphicOperations(object):
     def setup(self):
         self.pk, self.sk = generate_pair()
 
-    def test_xor(self):
+    def test_array_xor(self):
         def check_result(a, b):
             ea = self.pk.encrypt(a)
             eb = self.pk.encrypt(b)
@@ -123,7 +129,7 @@ class TestHomomorphicOperations(object):
         for a, b in pairs:
             check_result(a, b)
 
-    def test_and(self):
+    def test_array_and(self):
         def check_result(a, b):
             ea = self.pk.encrypt(a)
             eb = self.pk.encrypt(b)
@@ -135,6 +141,40 @@ class TestHomomorphicOperations(object):
             ([0, 0, 0, 0], [0, 0, 0, 0]),
             ([0, 0, 1, 1], [0, 0, 1, 1]),
             ([1, 1, 1, 1], [1, 1, 1, 1]),
+        ]
+        for a, b in pairs:
+            check_result(a, b)
+
+    def test_bit_xor(self):
+        def check_result(a, b):
+            ea = self.pk.encrypt(a)
+            eb = self.pk.encrypt(b)
+            r = self.sk.decrypt(ea ^ eb)
+            c = a ^ b
+            print (a, b, c, r)
+            assert_equals(r, c)
+        pairs = [
+            (0, 0),
+            (0, 1),
+            (1, 0),
+            (1, 1),
+        ]
+        for a, b in pairs:
+            check_result(a, b)
+
+    def test_bit_and(self):
+        def check_result(a, b):
+            ea = self.pk.encrypt(a)
+            eb = self.pk.encrypt(b)
+            r = self.sk.decrypt(ea & eb)
+            c = a & b
+            print (a, b, c, r)
+            assert_equals(r, c)
+        pairs = [
+            (0, 0),
+            (0, 1),
+            (1, 0),
+            (1, 1),
         ]
         for a, b in pairs:
             check_result(a, b)

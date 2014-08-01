@@ -28,12 +28,12 @@ class EncryptedBit(object):
         """Homomorphic XOR"""
         c = make_c_mpz_t()
         lib_scarab.fhe_add(c, self, other, self._pk)
-        return EncryptedBit(self.pk, c)
+        return EncryptedBit(self._pk, c)
 
-    def __and__(self, other_array):
+    def __and__(self, other):
         """Homomorphic AND"""
         c = make_c_mpz_t()
-        lib_scarab.fhe_add(c, self, other, self._pk)
+        lib_scarab.fhe_mul(c, self, other, self._pk)
         return EncryptedBit(self._pk, c)
 
     def __del__(self):
@@ -175,7 +175,7 @@ class PublicKey(object):
         :rtype       : :class:`~EncryptedArray` or :class:`~EncryptedBit`
                        object
         """
-        if len(plain) > 1:
+        if hasattr(plain, '__len__') and len(plain) > 1:
             encrypted_array = EncryptedArray(len(plain), self)
             for i, bit in enumerate(plain):
                 c = make_c_mpz_t()
@@ -183,9 +183,9 @@ class PublicKey(object):
                 encrypted_array[i] = c
             return encrypted_array
 
-        elif len(plain) == 1:
+        else:
             c = make_c_mpz_t()
-            lib_scarab.fhe_encrypt(c, self, int(bit))
+            lib_scarab.fhe_encrypt(c, self, int(plain))
             return EncryptedBit(self, c)
 
     def __del__(self):
@@ -214,13 +214,13 @@ class PrivateKey(object):
         :returns        : decrypted ciphertext
         :rtype          : list of integers or integer
         """
-        if len(encrypted) > 1:
+        if hasattr(encrypted, '__len__') and len(encrypted) > 1:
             bits = [c_int() for enc_bit in encrypted]
             for i, enc_bit in enumerate(encrypted):
                 bits[i] = int(lib_scarab.fhe_decrypt(enc_bit, self))
             return bits
 
-        elif len(encrypted) == 1:
+        else:
             return int(lib_scarab.fhe_decrypt(encrypted, self))
 
     def __del__(self):
