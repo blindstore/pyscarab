@@ -4,12 +4,12 @@ python:
     - "3.3"
 install: "python setup.py"
 before_install:
-    - apt-get install build-essential m4 lzip unzip
+    - sudo apt-get install build-essential m4 lzip unzip
     - git clone https://github.com/blindstore/libScarab
     - cd libScarab
     - ./scripts/install-dependencies.sh
     - make
-    - make install
+    - sudo make install
 script: nosetests .
 notifications:
     email: false
