@@ -40,6 +40,9 @@ class EncryptedBit(object):
         """Clear the mpz_t value"""
         clear_c_mpz_t(self)
 
+    def __add__(self, other):
+        return self.__xor__(other)
+
 
 class EncryptedArray(object):
 
@@ -61,6 +64,8 @@ class EncryptedArray(object):
 
         self._n  = n  # Size
         self._k  = 0  # Iterator
+
+        self.__add__ = self.__xor__
 
     def __getitem__(self, i):
         """Getter
@@ -130,6 +135,10 @@ class EncryptedArray(object):
         result = EncryptedArray(len(raw_results), self._pk, array=raw_results)
         result._array = raw_results
         return result
+
+    def __add__(self, other):
+        return self.__xor__(other)
+
 
     # def __add__(self, other_array):
     #     """Homomorphic full addition with carry"""

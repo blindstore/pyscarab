@@ -1,5 +1,4 @@
 from functools import reduce
-
 from scarab import generate_pair
 import numpy as np
 
@@ -46,17 +45,17 @@ def R(gammas, column, public_key):
 database = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
                      [1, 1, 0, 0, 0, 0, 0, 0],
                      [1, 1, 1, 0, 0, 0, 0, 0]])
-L = 8
+RECORD_SIZE = 8
+RECORD_COUNT = database.size // RECORD_SIZE
 ########
 
 
 def server_generate_response(cipher_query, pk):
-    indices = [binary(x) for x in range(database.size // L)]
+    indices = [binary(x) for x in range(RECORD_COUNT)]
     cipher_indices = [pk.encrypt(index) for index in indices]
     cipher_one = pk.encrypt(1)
-    gammas = np.array([gamma(cipher_query, cipherindex, cipher_one) for cipherindex in cipher_indices])
-
-    return np.array([R(gammas, database[:, c], pk) for c in range(L)])
+    gammas = np.array([gamma(cipher_query, ci, cipher_one) for ci in cipher_indices])
+    return np.array([R(gammas, database[:, c], pk) for c in range(RECORD_SIZE)])
 
 
 def client_perform_query(i):
