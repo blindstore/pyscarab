@@ -1,8 +1,8 @@
 language: python
 python:
     - "2.7"
-    - "3.3"
-install: "python setup.py"
+    - "3.4"
+install: "pip install -e ."
 before_install:
     - sudo apt-get install build-essential m4 lzip unzip
     - git clone https://github.com/blindstore/libScarab
