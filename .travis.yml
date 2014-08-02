@@ -10,6 +10,7 @@ before_install:
     - ./scripts/install-dependencies.sh
     - make
     - sudo make install
+    - cd ..
 script: nosetests .
 notifications:
     email: false
