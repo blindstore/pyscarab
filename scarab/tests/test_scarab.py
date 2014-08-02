@@ -62,6 +62,35 @@ class TestTypes(object):
         decrypted_array = sk.decrypt(encrypted_array)
         assert_equals(decrypted_array, array)
 
+class TestEncryptedBit(object):
+
+    """EncryptedBit unit tests"""
+
+    def setup(self):
+        self.pk, self.sk = generate_pair()
+
+    def test_recryption_ciphertext(self):
+        """Test that the recrypted ciphertext is different
+        when using recrypt function in EncryptedBit class."""
+        for plain in [0, 1]:
+            ciphertext = self.pk.encrypt(plain)
+            c = make_c_mpz_t()
+            assign_c_mpz_t(c, ciphertext._as_parameter_)
+            ciphertext_copy = EncryptedBit(self.pk, c)
+            ciphertext.recrypt(self.sk)
+            assert_true(compare_c_mpz_t(ciphertext._as_parameter_,
+                                        ciphertext_copy._as_parameter_) != 0)
+
+    def test_recryption_plaintext(self):
+        """Test that the recrypted ciphertext decrypts to
+        the same plaintext when using recrypt function in
+        EncryptedBit class.
+        """
+        for plain in [0, 1]:
+            ciphertext = self.pk.encrypt(plain)
+            ciphertext.recrypt(self.sk)
+            decrypted = self.sk.decrypt(ciphertext)
+            assert_equals(plain, decrypted)
 
 class TestEncryptedArray(object):
 
@@ -91,6 +120,8 @@ class TestEncryptedArray(object):
         assert_equals(len(self.array), 16)
 
     def test_recryption_ciphertext(self):
+        """Test that the recrypted ciphertext is different
+        when using recrypt function in EncryptedArray class."""
         encrypted_array = self.pk.encrypt([0, 1, 0, 0, 1, 0, 0, 1])
         old_array = [make_c_mpz_t() for i in range(8)]
         for a, b in zip(old_array, encrypted_array._array):
@@ -100,6 +131,10 @@ class TestEncryptedArray(object):
             assert_true(compare_c_mpz_t(a, b) != 0)
 
     def test_recryption_plaintext(self):
+        """Test that the recrypted ciphertext decrypts to
+        the same plaintext when using recrypt function in
+        EncryptedArray class.
+        """
         encrypted_array = self.pk.encrypt([0, 1, 0, 0, 1, 0, 0, 1])
         encrypted_array.recrypt(self.sk)
         decrypted_array = self.sk.decrypt(encrypted_array)
@@ -118,6 +153,9 @@ class TestEncryption(object):
         assert_true(compare_c_mpz_t(self.sk, make_c_mpz_t()) != 0)
 
     def test_bit_encryption(self):
+        """Check that decryption of an encrypted bit again leads
+        to the plaintext.
+        """
         for plain in [0, 1]:
             c = self.pk.encrypt(plain)
             assert_true(isinstance(c, EncryptedBit))
@@ -125,8 +163,8 @@ class TestEncryption(object):
             assert_equals(p, plain)
 
     def test_bit_encryption_determinism(self):
-        """Check that encryption of the same plaintext
-        leads to the same ciphertext.
+        """Check that encryption of the same plaintext over and over
+        again leads to the same ciphertext.
         """
         for plain in [0, 1]:
             c = self.pk.encrypt(plain)
@@ -135,28 +173,23 @@ class TestEncryption(object):
                 assert_true(compare_c_mpz_t(
                     c._as_parameter_, same._as_parameter_) == 0)
 
-    def test_bit_recryption_ciphertext(self):
-        """Test that the recrypted ciphertext is different."""
-        for plain in [0, 1]:
-            ciphertext = self.pk.encrypt(plain)
-            c = make_c_mpz_t()
-            assign_c_mpz_t(c, ciphertext._as_parameter_)
-            ciphertext_copy = EncryptedBit(self.pk, c)
-            ciphertext.recrypt(self.sk)
-            assert_true(compare_c_mpz_t(ciphertext._as_parameter_,
-                                        ciphertext_copy._as_parameter_) != 0)
-
-    def test_bit_recryption_plaintext(self):
-        """Test that the recrypted ciphertext decrypts to
-        the same plaintext.
+    def test_bit_recryption(self):
+        """Check that when passing the secret key to PublicKey.encrypt()
+        the encryption is done using recrypt and thus the same as when
+        first encrypt without passing the secret key and then calling
+        recrypt function on the EncryptedBit object.
         """
         for plain in [0, 1]:
-            ciphertext = self.pk.encrypt(plain)
-            ciphertext.recrypt(self.sk)
-            decrypted = self.sk.decrypt(ciphertext)
-            assert_equals(plain, decrypted)
+            without_recrypt = self.pk.encrypt(plain)
+            without_recrypt.recrypt(self.sk)
+            with_recrypt = self.pk.encrypt(plain, self.sk)
+            assert_true(compare_c_mpz_t(without_recrypt._as_parameter_,
+                with_recrypt._as_parameter_) == 0)
 
     def test_array_encryption(self):
+        """Check that decryption of an encrypted array again leads
+        to the plaintext.
+        """
         m = [0, 0, 0, 0, 0, 0, 0, 0]
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
@@ -175,6 +208,17 @@ class TestEncryption(object):
         assert_true(compare_c_mpz_t(c[0], make_c_mpz_t()) != 0)
         assert_equals(m, p)
 
+    def test_array_recryption(self):
+        """Check that when passing the secret key to PublicKey.encrypt()
+        the encryption is done using recrypt and thus different from the
+        one done without passing the secret key. As EncryptedArray.recrypt()
+        recrypts each bit independently, this will be not the same.
+        """
+        m = [1, 0, 1, 0, 1, 0, 1, 0]
+        without_recrypt = self.pk.encrypt(m)
+        with_recrypt = self.pk.encrypt(m, self.sk)
+        for a, b in zip(without_recrypt._array, with_recrypt._array):
+            assert_true(compare_c_mpz_t(a, b) != 0)
 
 class TestHomomorphicOperations(object):
 
