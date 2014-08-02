@@ -105,6 +105,7 @@ class TestEncryptedArray(object):
         decrypted_array = self.sk.decrypt(encrypted_array)
         assert_equals([0, 1, 0, 0, 1, 0, 0, 1], decrypted_array)
 
+
 class TestEncryption(object):
 
     """Test key generation and encryption"""
@@ -131,7 +132,8 @@ class TestEncryption(object):
             c = self.pk.encrypt(plain)
             for i in range(100):
                 same = self.pk.encrypt(plain)
-                assert_true(compare_c_mpz_t(c, same) == 0)
+                assert_true(compare_c_mpz_t(
+                    c._as_parameter_, same._as_parameter_) == 0)
 
     def test_bit_recryption_ciphertext(self):
         """Test that the recrypted ciphertext is different."""
@@ -141,7 +143,8 @@ class TestEncryption(object):
             assign_c_mpz_t(c, ciphertext._as_parameter_)
             ciphertext_copy = EncryptedBit(self.pk, c)
             ciphertext.recrypt(self.sk)
-            assert_true(compare_c_mpz_t(ciphertext, ciphertext_copy) != 0)
+            assert_true(compare_c_mpz_t(ciphertext._as_parameter_,
+                                        ciphertext_copy._as_parameter_) != 0)
 
     def test_bit_recryption_plaintext(self):
         """Test that the recrypted ciphertext decrypts to
@@ -152,24 +155,6 @@ class TestEncryption(object):
             ciphertext.recrypt(self.sk)
             decrypted = self.sk.decrypt(ciphertext)
             assert_equals(plain, decrypted)
-
-    def test_bit_recryption_nondeterminism(self):
-        """Test that recrypting the two same ciphertexts
-        leads to different new ciphertexts.
-        """
-        for plain in [0, 1]:
-            ciphertext0 = self.pk.encrypt(plain)
-            c = make_c_mpz_t()
-            assign_c_mpz_t(c, ciphertext0._as_parameter_)
-            ciphertext0_copy = EncryptedBit(self.pk, c)
-            ciphertext1 = self.pk.encrypt(plain)
-            d = make_c_mpz_t()
-            assign_c_mpz_t(d, ciphertext1._as_parameter_)
-            ciphertext1_copy = EncryptedBit(self.pk, d)
-
-            ciphertext0.recrypt(self.sk)
-            ciphertext1.recrypt(self.sk)
-            assert_true(compare_c_mpz_t(ciphertext0, ciphertext1) != 0)
 
     def test_array_encryption(self):
         m = [0, 0, 0, 0, 0, 0, 0, 0]
