@@ -1,6 +1,6 @@
 # pyscarab
 
-![Travis](https://travis-ci.org/blindstore/pyscarab.svg?branch=master)
+[![Travis](https://travis-ci.org/blindstore/pyscarab.svg?branch=master)](https://travis-ci.org/blindstore/pyscarab)
 
 Python wrapper and abstractions for [`libscarab`](https://hcrypt.com/) FHE library
 
