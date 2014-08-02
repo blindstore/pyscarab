@@ -1,5 +1,7 @@
 # pyscarab
 
+![Travis](https://travis-ci.org/blindstore/pyscarab.svg?branch=master)
+
 Python wrapper and abstractions for [`libscarab`](https://hcrypt.com/) FHE library
 
 ## Installation
