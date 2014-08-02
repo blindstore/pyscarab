@@ -1,8 +1,12 @@
 from functools import reduce
 
+from scarab import generate_pair
 import numpy as np
 
-from scarab import generate_pair, EncryptedBit
+_ADD = lambda a, b: a + b
+_MUL = lambda a, b: a * b
+_AND = lambda a, b: a & b
+_XOR = lambda a, b: a ^ b
 
 
 def binary(num):
@@ -17,47 +21,54 @@ def binary(num):
     return [int(b) for b in list(bin(num)[2:])]
 
 
-if __name__ == '__main__':
-    # Step 0: Keypair generation
-    pk, sk = generate_pair()
-    print('Keypair generated')
+def gamma(cq, ci, co):
+    """
+    Calculates the value of the gamma function, as described in PDF (paragraph 3.1.2)
+    :param cq: cipher query
+    :param ci: cipher index
+    :param co: cipher one
+    :return: the value of the gamma function
+    """
+    return reduce(_AND, [a ^ b ^ co for a, b in zip(cq, ci)])
 
-    database = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                         [1, 1, 0, 0, 0, 0, 0, 0],
-                         [1, 1, 1, 0, 0, 0, 0, 0]])
 
-    L = 8
+def R(gammas, column, public_key):
+    """
+    Calculates the value of R() function, as described in PDF (paragraph 3.1.3)
+    :param gammas: gammas
+    :param column: column
+    :param public_key: public key
+    :return: the value of the R function
+    """
+    return reduce(_XOR, gammas[np.where(column == 1)], public_key.encrypt(0))
 
-    # Step 1: (client) Query generation
-    query = binary(1)
-    cipher_query = pk.encrypt(query)
+########
+database = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                     [1, 1, 0, 0, 0, 0, 0, 0],
+                     [1, 1, 1, 0, 0, 0, 0, 0]])
+L = 8
+########
 
-    print('Query generated')
 
-    # Step 2.1: (server) Gamma
-    indices = [binary(0), binary(1), binary(2)]
+def server_generate_response(cipher_query, pk):
+    indices = [binary(x) for x in range(database.size // L)]
     cipher_indices = [pk.encrypt(index) for index in indices]
     cipher_one = pk.encrypt(1)
+    gammas = np.array([gamma(cipher_query, cipherindex, cipher_one) for cipherindex in cipher_indices])
 
-    def gamma(cipher_query, cipher_index):
-        result = pk.encrypt(1)
-        for alpha, beta in zip(cipher_query, cipher_index):
-            result &= alpha ^ beta ^ cipher_one
-        assert isinstance(result, EncryptedBit)
-        return result
+    return np.array([R(gammas, database[:, c], pk) for c in range(L)])
 
-    gammas = np.array([gamma(cipher_query, cipherindex) for cipherindex in cipher_indices])
 
-    print('Gammas calculated')
+def client_perform_query(i):
+    pk, sk = generate_pair()
+    response = server_generate_response(pk.encrypt(binary(i)), pk)
+    result = [sk.decrypt(r) for r in response]
+    return result
 
-    # Step 2.2: (server) Rs
+########
+########
+########
 
-    def R(gammas, column):
-        return reduce(EncryptedBit.__xor__, gammas[np.where(column == 1)], pk.encrypt(0))
-
-    Rs = np.array([R(gammas, database[:, c]) for c in range(L)])
-
-    # Rs sent back to client
-
-    result = [sk.decrypt(r) for r in Rs]
-    print(result)
+if __name__ == '__main__':
+    row = client_perform_query(0)
+    print(row)
