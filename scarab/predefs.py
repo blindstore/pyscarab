@@ -6,7 +6,7 @@ These need to be changed appropriately if corresponding values in
 
 N      = 8
 MU     = 4
-NU     = 2**256;
+NU     = 2**256
 LOG_NU = 384
 S1     = 8
 S2     = 5
