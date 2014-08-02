@@ -1,7 +1,9 @@
 """Some low-level type definitions for `libscarab` and `GMP`"""
 
+import json
+
 from ctypes import POINTER, Structure, \
-    c_ulong, c_ulonglong, c_int
+    c_ulong, c_ulonglong, c_int, c_char_p, string_at
 
 from .loader import Library
 from .predefs import *
@@ -9,6 +11,7 @@ from .predefs import *
 
 lib_gmp = Library.load('gmp')
 lib_scarab = Library.load('scarab')
+libc = Library.load('libc')
 
 
 class _c__mpz_struct(Structure):
@@ -47,6 +50,36 @@ def compare_c_mpz_t(a, b):
         raise TypeError('Unknown `b` type')
 
 
+base = 62
+
+
+def serialize_c_mpz_t(mpz):
+    """
+    Serialize mpz_t
+
+    :type mpz: c_mpz_t
+    :rtype   : str
+    """
+    c_str = lib_gmp.__gmpz_get_str(None, base, mpz)
+    result = string_at(c_str).decode('ascii')
+    libc.free(c_str)
+    return result
+
+# mpz_t deserialization
+def deserialize_c_mpz_t(serialized_mpz):
+    """
+    Deserialize mpz_t
+
+    :type serialized_mpz: str
+    :rtype              : c_mpz_t
+    """
+    c_str = c_char_p(serialized_mpz.encode('ascii'))
+    result = make_c_mpz_t()
+    flag = lib_gmp.__gmpz_set_str(result, c_str, base)
+    assert flag == 0
+    return result
+
+
 class _c__fhe_pk(Structure):
 
     """_fhe_pk (public key) definition"""
@@ -71,6 +104,42 @@ def make_c_fhe_pk_t():
 
 # fhe_pk_t destructor
 clear_c_fhe_pk_t = lib_scarab.fhe_pk_clear
+
+def serialize_c_fhe_pk_t(pk):
+    """
+    Serialize c_fhe_pk_t
+
+    :type pk: c_fhe_pk_t
+    :returns: json dump of list of strings
+    """
+    result = {
+        'p'    : serialize_c_mpz_t(pk[0].p),
+        'alpha': serialize_c_mpz_t(pk[0].alpha),
+        'c'    : [serialize_c_mpz_t(c_elem) for c_elem in pk[0].c],
+        'B'    : [serialize_c_mpz_t(B_elem) for B_elem in pk[0].B]
+    }
+    return json.dumps(result)
+
+def deserialize_c_fhe_pk_t(serialized_pk):
+    """
+    Deserialize fhe_pk_t
+
+    :type serialized_pk: str
+    :rtype             : fhe_pk_t
+    """
+    jsonified = json.loads(serialized_pk)
+    result = make_c_fhe_pk_t()
+
+    result[0].p = deserialize_c_mpz_t(jsonified['p'])
+    result[0].alpha = deserialize_c_mpz_t(jsonified['alpha'])
+
+    assert S1 == len(jsonified['c'])
+    assert S1 == len(jsonified['B'])
+
+    result[0].c = (c_mpz_t * S1)(*[deserialize_c_mpz_t(c_elem) for c_elem in jsonified['c']])
+    result[0].B = (c_mpz_t * S1)(*[deserialize_c_mpz_t(B_elem) for B_elem in jsonified['B']])
+
+    return result
 
 
 class _c__fhe_sk(Structure):

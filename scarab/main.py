@@ -1,11 +1,14 @@
 """`libscarab` Python wrapper"""
 
+import json
 from ctypes import c_int, c_ulong
 
 from .loader import Library
 from .types import make_c_mpz_t, clear_c_mpz_t, assign_c_mpz_t, compare_c_mpz_t, \
                    make_c_fhe_pk_t, clear_c_fhe_pk_t, \
-                   make_c_fhe_sk_t, clear_c_fhe_sk_t
+                   make_c_fhe_sk_t, clear_c_fhe_sk_t, \
+                   serialize_c_fhe_pk_t, deserialize_c_fhe_pk_t, \
+                   serialize_c_mpz_t, deserialize_c_mpz_t
 
 
 lib_scarab = Library.load('scarab')
@@ -19,10 +22,13 @@ class EncryptedBit(object):
         """Create encrypted bit
 
         :param pk: :class:`~PrivateKey` object
-        :param value: initialized mpz_t object
+        :param value: initialized mpz_t object or serialized mpz_t
         """
         self._pk = pk
-        self._as_parameter_ = value
+        if isinstance(value, str):
+            self._as_parameter_ = deserialize_c_mpz_t(value)
+        else:
+            self._as_parameter_ = value
 
     def __xor__(self, other):
         """Homomorphic XOR"""
@@ -41,7 +47,12 @@ class EncryptedBit(object):
         clear_c_mpz_t(self)
 
     def __add__(self, other):
+        """XOR alias"""
         return self.__xor__(other)
+
+    def __str__(self):
+        """Serialize encrypted bit to string"""
+        return serialize_c_mpz_t(self._as_parameter_)
 
 
 class EncryptedArray(object):
@@ -53,14 +64,20 @@ class EncryptedArray(object):
 
         :param n:     array size
         :param pk:    :class:`~PublicKey` object
-        :param array: list of initialized mpz_t objects
+        :param array: list of initialized mpz_t objects or serialized
+                      EncryptedArray
         """
         self._pk = pk
 
         if array is None:
             self._array = [make_c_mpz_t() for bit in range(n)]
         else:
-            self._array = array
+            if isinstance(array, str):
+                stringified_array = json.loads(array)
+                self._array = [deserialize_c_mpz_t(elem) \
+                    for elem in stringified_array]
+            else:
+                self._array = array
 
         self._n  = n  # Size
         self._k  = 0  # Iterator
@@ -137,30 +154,18 @@ class EncryptedArray(object):
         return result
 
     def __add__(self, other):
+        """XOR alias"""
         return self.__xor__(other)
-
-
-    # def __add__(self, other_array):
-    #     """Homomorphic full addition with carry"""
-    #     # import ipdb;ipdb.set_trace()
-    #     raw_results = []
-    #     d = make_c_mpz_t() # c_in
-    #     c = make_c_mpz_t() # c_out
-    #     for a, b in zip(self._array, other_array):
-    #         s = make_c_mpz_t() # sum
-    #         lib_scarab.fhe_fulladd(s, c, a, b, d, self.pk.raw)
-    #         assign_c_mpz_t(d, c)
-    #         raw_results.append(s)
-    #     if compare_c_mpz_t(d, c_ulong(0)) != 0:
-    #         raw_results.append(c)
-    #     result = EncryptedArray(len(raw_results), self.pk, array=raw_results)
-    #     result._array = raw_results
-    #     return result
 
     def __del__(self):
         """Clear array of mpz_t"""
         for c in self._array:
             clear_c_mpz_t(c)
+
+    def __str__(self):
+        """Serialize array to string"""
+        serialized_array = [serialize_c_mpz_t(mpz) for mpz in self._array]
+        return json.dumps(serialized_array)
 
 
 class PublicKey(object):
@@ -172,9 +177,12 @@ class PublicKey(object):
 
         Should be constructed with :func:`~generate_pair`
 
-        :param pk: initialized fhe_pk_t object
+        :param pk: initialized fhe_pk_t object or a serialized string
         """
-        self._as_parameter_ = pk
+        if isinstance(pk, str):
+            self._as_parameter_ = deserialize_c_fhe_pk_t(pk)
+        else:
+            self._as_parameter_ = pk
 
     def encrypt(self, plain):
         """Encrypt message bit-by-bit
@@ -195,6 +203,10 @@ class PublicKey(object):
             c = make_c_mpz_t()
             lib_scarab.fhe_encrypt(c, self, int(plain))
             return EncryptedBit(self, c)
+
+    def __str__(self):
+        """Serialize public key to JSON string"""
+        return serialize_c_fhe_pk_t(self._as_parameter_)
 
     def __del__(self):
         """Clear key"""
