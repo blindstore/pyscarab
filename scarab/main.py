@@ -184,14 +184,13 @@ class PublicKey(object):
         :rtype       : :class:`~EncryptedArray` or :class:`~EncryptedBit`
                        object
         """
-        if hasattr(plain, '__len__') and len(plain) > 1:
+        if hasattr(plain, '__len__'): # and len(plain) > 1:
             encrypted_array = EncryptedArray(len(plain), self)
             for i, bit in enumerate(plain):
                 c = make_c_mpz_t()
                 lib_scarab.fhe_encrypt(c, self, int(bit))
                 encrypted_array[i] = c
             return encrypted_array
-
         else:
             c = make_c_mpz_t()
             lib_scarab.fhe_encrypt(c, self, int(plain))
@@ -238,7 +237,14 @@ class PrivateKey(object):
 
 
 def generate_pair():
-    """Generate public and private keypair"""
+    """Generate public and private keypair
+
+    >>> pk, sk = generate_pair()
+    >>> sk.decrypt(pk.encrypt(1))
+    1
+    >>> sk.decrypt(pk.encrypt(0))
+    0
+    """
     pk, sk = make_c_fhe_pk_t(), make_c_fhe_sk_t()
     lib_scarab.fhe_keygen(pk, sk)
     return PublicKey(pk), PrivateKey(sk)
