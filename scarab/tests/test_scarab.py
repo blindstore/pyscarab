@@ -1,5 +1,6 @@
 """Scarab wrapper unit tests"""
 
+import json
 import ctypes
 
 from scarab import *
@@ -33,6 +34,33 @@ class TestTypes(object):
         assert_true(compare_c_mpz_t(a, b) == 0)
         b = ctypes.c_ulong(50)
         assert_true(compare_c_mpz_t(a, b) != 0)
+
+    def test_mpz_serialization(self):
+        mpz = make_c_mpz_t()
+        stringified = serialize_c_mpz_t(mpz)
+        assert_equals(stringified, '0')
+
+    def test_mpz_deserialization(self):
+        pk, sk = generate_pair()
+        mpz = pk.encrypt(1)
+        stringified = serialize_c_mpz_t(mpz)
+        mpz1 = deserialize_c_mpz_t(stringified)
+        assert_true(compare_c_mpz_t(mpz, mpz1) == 0)
+
+    def test_pk_serialization(self):
+        pk, sk = generate_pair()
+        stringified = serialize_c_fhe_pk_t(pk._as_parameter_)
+        jsonified = json.loads(stringified)
+
+    def test_pk_deserialization(self):
+        array = [1, 1, 1, 0, 1, 0, 0, 1]
+        pk, sk = generate_pair()
+        stringified = serialize_c_fhe_pk_t(pk._as_parameter_)
+        pk1 = deserialize_c_fhe_pk_t(stringified)
+        encrypted_array = PublicKey(pk1).encrypt(array)
+        decrypted_array = sk.decrypt(encrypted_array)
+        assert_equals(decrypted_array, array)
+
 
 class TestEncryptedArray(object):
 
@@ -179,17 +207,33 @@ class TestHomomorphicOperations(object):
         for a, b in pairs:
             check_result(a, b)
 
-    # def test_add(self):
-    #     def check_result(a, b, c):
-    #         ea = self.pk.encrypt(a)
-    #         eb = self.pk.encrypt(b)
-    #         r = self.sk.decrypt(ea + eb)
-    #         print (a, b, c, r)
-    #         assert_equals(r, c)
-    #     values = [
-    #         ([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
-    #         ([0, 0, 1, 1], [0, 0, 1, 1], [0, 1, 1, 0]),
-    #         ([1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1, 0]),
-    #     ]
-    #     for a, b, c in values:
-    #         check_result(a, b, c)
+
+class TestSerialization(object):
+
+    def test_public_key_serialization(self):
+        array = [1, 1, 1, 0, 1, 0, 0, 1]
+        pk, sk = generate_pair()
+        stringified = str(pk)
+        pk1 = PublicKey(stringified)
+        encrypted_array = pk1.encrypt(array)
+        decrypted_array = sk.decrypt(encrypted_array)
+        assert_equals(decrypted_array, array)
+
+    def test_encrypted_bit_serialization(self):
+        pk, sk = generate_pair()
+        a = pk.encrypt(1)
+        stringified = str(a)
+        b = EncryptedBit(pk, stringified)
+        one = sk.decrypt(b)
+        assert_equals(one, 1)
+
+    def test_encrypted_array_serialization(self):
+        array = [1, 1, 1, 0, 1, 0, 0, 1]
+        pk, sk = generate_pair()
+        enc_array = pk.encrypt(array)
+        stringified = str(enc_array)
+        enc_array1 = EncryptedArray(len(array), pk, stringified)
+        array1 = sk.decrypt(enc_array1)
+        assert_equals(array, array1)
+
+

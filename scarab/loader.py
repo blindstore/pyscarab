@@ -13,8 +13,8 @@ class Library(object):
     libs = {}
 
     lib_paths = {
-        'scarab': 'libscarab.so',
-        'gmp': 'libgmp.so'
+        'scarab': './libscarab.so',
+        'gmp': './libgmp.so'
     }
 
     def load(name):
@@ -24,8 +24,11 @@ class Library(object):
             if lib_path is None:
                 file_path = os.path.abspath(__file__)
                 project_path = os.path.dirname(os.path.dirname(file_path))
-                default_lib_path = Library.lib_paths[name]
-                lib_path = os.path.join(project_path, default_lib_path)
+                try:
+                    default_lib_path = Library.lib_paths[name]
+                    lib_path = os.path.join(project_path, default_lib_path)
+                except:
+                    pass
             Library.libs[name] = cdll.LoadLibrary(lib_path)
 
         return Library.libs[name]
