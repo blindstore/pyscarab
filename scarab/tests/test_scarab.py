@@ -1,6 +1,7 @@
 """Scarab wrapper unit tests"""
 
 import json
+import copy
 import ctypes
 
 from scarab import *
@@ -89,12 +90,20 @@ class TestEncryptedArray(object):
     def test_len(self):
         assert_equals(len(self.array), 16)
 
-    # def test_recrypt(self):
-    #     old = list(self.array._array)
-    #     self.array.recrypt()
-    #     new = list(self.array._array)
-    #     assert_not_equals(old, new)
+    def test_recryption_ciphertext(self):
+        encrypted_array = self.pk.encrypt([0, 1, 0, 0, 1, 0, 0, 1])
+        old_array = [make_c_mpz_t() for i in range(8)]
+        for a, b in zip(old_array, encrypted_array._array):
+            assign_c_mpz_t(a, b)
+        encrypted_array.recrypt(self.sk)
+        for a, b in zip(old_array, encrypted_array._array):
+            assert_true(compare_c_mpz_t(a, b) != 0)
 
+    def test_recryption_plaintext(self):
+        encrypted_array = self.pk.encrypt([0, 1, 0, 0, 1, 0, 0, 1])
+        encrypted_array.recrypt(self.sk)
+        decrypted_array = self.sk.decrypt(encrypted_array)
+        assert_equals([0, 1, 0, 0, 1, 0, 0, 1], decrypted_array)
 
 class TestEncryption(object):
 
@@ -108,11 +117,59 @@ class TestEncryption(object):
         assert_true(compare_c_mpz_t(self.sk, make_c_mpz_t()) != 0)
 
     def test_bit_encryption(self):
-        b = 0
-        c = self.pk.encrypt(b)
-        assert_true(isinstance(c, EncryptedBit))
-        p = self.sk.decrypt(c)
-        assert_equals(p, b)
+        for plain in [0, 1]:
+            c = self.pk.encrypt(plain)
+            assert_true(isinstance(c, EncryptedBit))
+            p = self.sk.decrypt(c)
+            assert_equals(p, plain)
+
+    def test_bit_encryption_determinism(self):
+        """Check that encryption of the same plaintext
+        leads to the same ciphertext.
+        """
+        for plain in [0, 1]:
+            c = self.pk.encrypt(plain)
+            for i in range(100):
+                same = self.pk.encrypt(plain)
+                assert_true(compare_c_mpz_t(c, same) == 0)
+
+    def test_bit_recryption_ciphertext(self):
+        """Test that the recrypted ciphertext is different."""
+        for plain in [0, 1]:
+            ciphertext = self.pk.encrypt(plain)
+            c = make_c_mpz_t()
+            assign_c_mpz_t(c, ciphertext._as_parameter_)
+            ciphertext_copy = EncryptedBit(self.pk, c)
+            ciphertext.recrypt(self.sk)
+            assert_true(compare_c_mpz_t(ciphertext, ciphertext_copy) != 0)
+
+    def test_bit_recryption_plaintext(self):
+        """Test that the recrypted ciphertext decrypts to
+        the same plaintext.
+        """
+        for plain in [0, 1]:
+            ciphertext = self.pk.encrypt(plain)
+            ciphertext.recrypt(self.sk)
+            decrypted = self.sk.decrypt(ciphertext)
+            assert_equals(plain, decrypted)
+
+    def test_bit_recryption_nondeterminism(self):
+        """Test that recrypting the two same ciphertexts
+        leads to different new ciphertexts.
+        """
+        for plain in [0, 1]:
+            ciphertext0 = self.pk.encrypt(plain)
+            c = make_c_mpz_t()
+            assign_c_mpz_t(c, ciphertext0._as_parameter_)
+            ciphertext0_copy = EncryptedBit(self.pk, c)
+            ciphertext1 = self.pk.encrypt(plain)
+            d = make_c_mpz_t()
+            assign_c_mpz_t(d, ciphertext1._as_parameter_)
+            ciphertext1_copy = EncryptedBit(self.pk, d)
+
+            ciphertext0.recrypt(self.sk)
+            ciphertext1.recrypt(self.sk)
+            assert_true(compare_c_mpz_t(ciphertext0, ciphertext1) != 0)
 
     def test_array_encryption(self):
         m = [0, 0, 0, 0, 0, 0, 0, 0]
