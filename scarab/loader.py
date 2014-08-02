@@ -17,6 +17,7 @@ class Library(object):
         'gmp': './libgmp.so'
     }
 
+    @staticmethod
     def load(name):
         """Load library if not loaded before"""
         if name not in Library.libs:
