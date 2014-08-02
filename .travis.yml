@@ -1,0 +1,14 @@
+language: python
+python:
+    - "2.7"
+    - "3.3"
+install: "python setup.py"
+before_install:
+    - git clone git@github.com:blindstore/libScarab.git
+    - cd libScarab
+    - ./scripts/install-dependencies.sh
+    - make
+    - make install
+script: nosetests .
+notifications:
+    email: false
