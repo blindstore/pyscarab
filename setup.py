@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup (name='pyscarab',
        version='0.1',
-       description='Python bindings for libscarab',
+       description='Python wrapper and abstractions for libscarab FHE library',
        author='Bogdan Kulynych, Benjamin Lipp, Davide Kirchner',
        author_email='hello@hidden-markov.com, mail@benjaminlipp.de, davide.kirchner@yahoo.it',
        url='https://github.com/blindstore/pyscarab',
