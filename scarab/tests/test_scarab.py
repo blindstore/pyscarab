@@ -62,6 +62,7 @@ class TestTypes(object):
         decrypted_array = sk.decrypt(encrypted_array)
         assert_equals(decrypted_array, array)
 
+
 class TestEncryptedBit(object):
 
     """EncryptedBit unit tests"""
@@ -91,6 +92,7 @@ class TestEncryptedBit(object):
             ciphertext.recrypt(self.sk)
             decrypted = self.sk.decrypt(ciphertext)
             assert_equals(plain, decrypted)
+
 
 class TestEncryptedArray(object):
 
@@ -176,6 +178,7 @@ class TestEncryption(object):
                 assert_true(compare_c_mpz_t(
                     c._as_parameter_, same._as_parameter_) == 0)
 
+    @nottest
     def test_bit_recryption(self):
         """Check that when passing the secret key to PublicKey.encrypt()
         the encryption is done using recrypt and thus the same as when
@@ -203,6 +206,8 @@ class TestEncryption(object):
         c = self.pk.encrypt(m)
         p = self.sk.decrypt(c)
         assert_true(compare_c_mpz_t(c[0], make_c_mpz_t()) != 0)
+
+
         assert_equals(m, p)
 
         m = [1, 1, 1, 1, 1, 1, 1, 1]
