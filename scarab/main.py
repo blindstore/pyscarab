@@ -190,42 +190,41 @@ class PublicKey(object):
 
         :param plain : plaintext bit array or a single bit
         :type plain  : list of integers or integer
-        :param sk    : secret key, if not None, uses recrypt
+        :param sk    : secret key, if not None, uses recrypt for each bit
         :type sk     : :class:`~PrivateKey` object or None
         :rtype       : :class:`~EncryptedArray` or :class:`~EncryptedBit`
                        object
         """
         if hasattr(plain, '__len__'):
 
-            # Prepare encrypted bits. The encrypt function
-            # is deterministic, so we can reuse them if
-            # we are not using recryption
-            encrypted_zero = make_c_mpz_t()
-            encrypted_one = make_c_mpz_t()
-            lib_scarab.fhe_encrypt(encrypted_zero, self, 0)
-            lib_scarab.fhe_encrypt(encrypted_one, self, 1)
-
             encrypted_array = EncryptedArray(len(plain), self)
+
+            if sk is not None:
+                # Prepare encrypted bits for recryption
+                encrypted_zero = make_c_mpz_t()
+                encrypted_one = make_c_mpz_t()
+                lib_scarab.fhe_encrypt(encrypted_zero, self, 0)
+                lib_scarab.fhe_encrypt(encrypted_one, self, 1)
 
             for i, bit in enumerate(plain):
 
                 c = make_c_mpz_t()
 
-                # If sk is None, then just assign the prepared
-                # encrypted bit. Otherwise, recrypt before assigning.
-                if int(bit) == 0:
-                    if sk is not None:
+                if sk is not None:
+                    if int(bit) == 0:
                         lib_scarab.fhe_recrypt(encrypted_zero, self, sk)
-                    assign_c_mpz_t(c, encrypted_zero)
-                elif int(bit) == 1:
-                    if sk is not None:
+                        assign_c_mpz_t(c, encrypted_zero)
+                    elif int(bit) == 1:
                         lib_scarab.fhe_recrypt(encrypted_one, self, sk)
-                    assign_c_mpz_t(c, encrypted_one)
+                        assign_c_mpz_t(c, encrypted_one)
+                    else:
+                        raise ValueError('Plaintext can only be 0 or 1.')
                 else:
-                    raise ValueError('Plaintext can only be 0 or 1.')
+                    lib_scarab.fhe_encrypt(c, self, int(bit))
 
                 encrypted_array[i] = c
             return encrypted_array
+
         else:
             c = make_c_mpz_t()
             lib_scarab.fhe_encrypt(c, self, int(plain))

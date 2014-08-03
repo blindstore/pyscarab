@@ -1,7 +1,7 @@
 """Scarab wrapper unit tests"""
 
 import json
-import copy
+import random
 import ctypes
 
 from scarab import *
@@ -71,7 +71,7 @@ class TestEncryptedBit(object):
         self.pk, self.sk = generate_pair()
 
     def test_recryption_ciphertext(self):
-        """Test that the recrypted ciphertext is different
+        """Test that the ciphertext changes
         when using recrypt function in EncryptedBit class."""
         for plain in [0, 1]:
             ciphertext = self.pk.encrypt(plain)
@@ -122,7 +122,7 @@ class TestEncryptedArray(object):
         assert_equals(len(self.array), 16)
 
     def test_recryption_ciphertext(self):
-        """Test that the recrypted ciphertext is different
+        """Test that the ciphertext changes
         when using recrypt function in EncryptedArray class."""
         encrypted_array = self.pk.encrypt([0, 1, 0, 0, 1, 0, 0, 1])
         old_array = [make_c_mpz_t() for i in range(8)]
@@ -165,25 +165,15 @@ class TestEncryption(object):
             assert_equals(p, plain)
 
     @nottest
-    def test_bit_encryption_determinism(self):
-        """Check that encryption of the same plaintext over and over
-        again leads to the same ciphertext.
-
-        FIXME: Test on EncryptedArray
-        """
-        for plain in [0, 1]:
-            c = self.pk.encrypt(plain)
-            for i in range(100):
-                same = self.pk.encrypt(plain)
-                assert_true(compare_c_mpz_t(
-                    c._as_parameter_, same._as_parameter_) == 0)
-
-    @nottest
     def test_bit_recryption(self):
         """Check that when passing the secret key to PublicKey.encrypt()
         the encryption is done using recrypt and thus the same as when
         first encrypt without passing the secret key and then calling
         recrypt function on the EncryptedBit object.
+
+        This test is not being used because encryption
+        is _not_ deterministic (what is nice).
+        It might however be "deterministic" on a very small time scale.
         """
         for plain in [0, 1]:
             without_recrypt = self.pk.encrypt(plain)
@@ -216,17 +206,58 @@ class TestEncryption(object):
         assert_true(compare_c_mpz_t(c[0], make_c_mpz_t()) != 0)
         assert_equals(m, p)
 
+    @nottest
+    def test_array_encryption_determinism(self):
+        """Check that encryption of the same plaintext over and over
+        again leads to the same ciphertext.
+
+        This test is not being used because encryption
+        is _not_ deterministic (what is nice).
+        It might however be "deterministic" on a very small time scale.
+        """
+        counter_same = 0
+        counter_different = 0
+        for i in range(50):
+            plain = [random.randint(0, 1) for r in range(8)]
+            c = self.pk.encrypt(plain)
+            for j in range(100):
+                same = self.pk.encrypt(plain)
+                for a, b in zip(c._array, same._array):
+                    if compare_c_mpz_t(a, b) == 0:
+                        counter_same += 1
+                    else:
+                        print('difference in run i ' + str(i) + ', j ' + str(j))
+                        counter_different += 1
+        print('same: ' + str(counter_same))
+        print('different: ' + str(counter_different))
+        print('sum: ' + str(counter_different + counter_same))
+        assert_equals(counter_different, 0)
+
     def test_array_recryption(self):
         """Check that when passing the secret key to PublicKey.encrypt()
         the encryption is done using recrypt and thus different from the
         one done without passing the secret key. As EncryptedArray.recrypt()
-        recrypts each bit independently, this will be not the same.
+        recrypts each bit independently, this will be not the same. We cannot
+        test for the exact ciphertext, because recrypt is not deterministic.
         """
         m = [1, 0, 1, 0, 1, 0, 1, 0]
         without_recrypt = self.pk.encrypt(m)
         with_recrypt = self.pk.encrypt(m, self.sk)
         for a, b in zip(without_recrypt._array, with_recrypt._array):
             assert_true(compare_c_mpz_t(a, b) != 0)
+
+    def test_array_recryption_ciphertext_different_bits(self):
+        """Check that when passing the secret key to PublicKey.encrypt()
+        the encryption is done using recrypt and thus no bit gets
+        the same ciphertext.
+        """
+        for i in range(10):
+            m = [random.randint(0, 1) for r in range(8)]
+            with_recrypt = self.pk.encrypt(m, self.sk)
+            for j in range(8):
+                for k in range(j+1, 8):
+                    assert_true(compare_c_mpz_t(with_recrypt._array[j], with_recrypt._array[k]) != 0)
+
 
 class TestHomomorphicOperations(object):
 
