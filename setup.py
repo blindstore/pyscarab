@@ -2,12 +2,12 @@ from setuptools import setup
 
 
 setup (name='pyscarab',
-       version='0.1',
-       description='Python bindings for libscarab',
-       author='Bogdan Kulynych',
-       author_email='hello@hidden-markov.com',
+       version='0.1.1',
+       description='Python wrapper and abstractions for libscarab FHE library',
+       author='Bogdan Kulynych, Benjamin Lipp, Davide Kirchner',
+       author_email='hello@hidden-markov.com, mail@benjaminlipp.de, davide.kirchner@yahoo.it',
        url='https://github.com/blindstore/pyscarab',
-       packages=['pyscarab'],
+       packages=['scarab', 'scarab.tests'],
        license='MIT',
 
        keywords='crypto',
@@ -25,6 +25,6 @@ setup (name='pyscarab',
        ],
 
        test_suite='nose.collector',
-       test_require=[
+       test_requires=[
            'nose'
        ])

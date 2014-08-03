@@ -21,7 +21,7 @@ class EncryptedBit(object):
     def __init__(self, pk, value):
         """Create encrypted bit
 
-        :param pk: :class:`~PrivateKey` object
+        :param pk: :class:`~PublicKey` object
         :param value: initialized mpz_t object or serialized mpz_t
         """
         self._pk = pk
@@ -53,6 +53,10 @@ class EncryptedBit(object):
     def __str__(self):
         """Serialize encrypted bit to string"""
         return serialize_c_mpz_t(self._as_parameter_)
+
+    def recrypt(self, sk):
+        """Recrypt a cyphertext (refreshing it)"""
+        lib_scarab.fhe_recrypt(self, self._pk, sk)
 
 
 class EncryptedArray(object):
@@ -119,13 +123,10 @@ class EncryptedArray(object):
         """Iterator for Python 2"""
         return self.__next__()
 
-    # def recrypt(self):
-    #     """Recrypt ciphertext"""
-    #     recrypted_array = []
-    #     for c in self._array:
-    #         lib_scarab.fhe_recrypt(c, self.pk.raw)
-    #         recrypted_array.append(c)
-    #     self._array = recrypted_array
+    def recrypt(self, sk):
+        """Recrypt ciphertext"""
+        for c in self._array:
+            lib_scarab.fhe_recrypt(c, self._pk, sk)
 
     def __len__(self):
         """Array size"""
@@ -184,24 +185,52 @@ class PublicKey(object):
         else:
             self._as_parameter_ = pk
 
-    def encrypt(self, plain):
+    def encrypt(self, plain, sk=None):
         """Encrypt message bit-by-bit
 
         :param plain : plaintext bit array or a single bit
         :type plain  : list of integers or integer
+        :param sk    : secret key, if not None, uses recrypt
+        :type sk     : :class:`~PrivateKey` object or None
         :rtype       : :class:`~EncryptedArray` or :class:`~EncryptedBit`
                        object
         """
-        if hasattr(plain, '__len__'): # and len(plain) > 1:
+        if hasattr(plain, '__len__'):
+
+            # Prepare encrypted bits. The encrypt function
+            # is deterministic, so we can reuse them if
+            # we are not using recryption
+            encrypted_zero = make_c_mpz_t()
+            encrypted_one = make_c_mpz_t()
+            lib_scarab.fhe_encrypt(encrypted_zero, self, 0)
+            lib_scarab.fhe_encrypt(encrypted_one, self, 1)
+
             encrypted_array = EncryptedArray(len(plain), self)
+
             for i, bit in enumerate(plain):
+
                 c = make_c_mpz_t()
-                lib_scarab.fhe_encrypt(c, self, int(bit))
+
+                # If sk is None, then just assign the prepared
+                # encrypted bit. Otherwise, recrypt before assigning.
+                if int(bit) == 0:
+                    if sk is not None:
+                        lib_scarab.fhe_recrypt(encrypted_zero, self, sk)
+                    assign_c_mpz_t(c, encrypted_zero)
+                elif int(bit) == 1:
+                    if sk is not None:
+                        lib_scarab.fhe_recrypt(encrypted_one, self, sk)
+                    assign_c_mpz_t(c, encrypted_one)
+                else:
+                    raise ValueError('Plaintext can only be 0 or 1.')
+
                 encrypted_array[i] = c
             return encrypted_array
         else:
             c = make_c_mpz_t()
             lib_scarab.fhe_encrypt(c, self, int(plain))
+            if sk is not None:
+                lib_scarab.fhe_recrypt(c, self, sk)
             return EncryptedBit(self, c)
 
     def __str__(self):

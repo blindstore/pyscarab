@@ -40,8 +40,8 @@ clear_c_mpz_t = lib_gmp.__gmpz_clear
 # mpz_t assignment
 assign_c_mpz_t = lib_gmp.__gmpz_set
 
-# mpz_t comparision
 def compare_c_mpz_t(a, b):
+    """Compare mpz_t"""
     if isinstance(b, c_ulong):
         return lib_gmp.__gmpz_cmp_ui(a, b)
     elif isinstance(b, c_mpz_t):
@@ -65,7 +65,6 @@ def serialize_c_mpz_t(mpz):
     libc.free(c_str)
     return result
 
-# mpz_t deserialization
 def deserialize_c_mpz_t(serialized_mpz):
     """
     Deserialize mpz_t
