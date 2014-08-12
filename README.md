@@ -6,9 +6,16 @@ Python wrapper and abstractions for [`libscarab`](https://hcrypt.com/) FHE libra
 
 ## Installation
 
-Requires libscarab [fork](https://github.com/blindstore/libScarab) installed. If it is present:
+Requires libscarab [fork](https://github.com/blindstore/libScarab) installed.
+
+Install with pip:
 
 ```
 pip install git+git://github.com/blindstore/pyscarab.git@master
 ```
 
+## Notes
+
+`libscarab` uses insecure parameters by default, and is experimental software. This package should only be used for research purposes
+
+`pyscarab` does not do any type checks before communicating with C, so it's very easy to segfault it. 
