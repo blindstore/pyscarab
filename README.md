@@ -14,6 +14,13 @@ Install with pip:
 pip install git+git://github.com/blindstore/pyscarab.git@master
 ```
 
+## Run the tests
+
+```
+nosetests scarab/tests
+```
+
+
 ## Notes
 
 `libscarab` uses insecure parameters by default, and is experimental software. This package should only be used for research purposes
