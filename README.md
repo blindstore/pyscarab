@@ -16,6 +16,8 @@ pip install git+git://github.com/blindstore/pyscarab.git@master
 
 ## Run the tests
 
+The tests require `nose`, install with `pip install nose`.
+
 ```
 nosetests scarab/tests
 ```
